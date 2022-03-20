@@ -1,4 +1,5 @@
 const { Client } = require('pg')
+require("dotenv").config()
 
 const client = new Client('postgres://localhost:5432/juicebox-dev');
 
@@ -163,11 +164,11 @@ async function getAllPosts() {
 
 async function getAllTags() {
   try {
-    const tags = await client.query(`
+    const { rows } = await client.query(`
     SELECT * FROM tags
     `);
 
-    return tags;
+    return rows;
   } catch (error) {
     throw error;
   }
@@ -259,6 +260,13 @@ async function getPostById(postId) {
       WHERE id=$1;
     `, [postId]);
 
+    if (!post) {
+      throw {
+        name: "PostNotFoundError",
+        message: "Could not find a post with that postId"
+      };
+    }
+
     const { rows: tags } = await client.query(`
       SELECT tags.*
       FROM tags
@@ -301,6 +309,20 @@ async function getPostsByTagName(tagName) {
   }
 } 
 
+async function getUserByUsername(username) {
+  try {
+    const { rows: [user] } = await client.query(`
+      SELECT *
+      FROM users
+      WHERE username=$1;
+    `, [username]);
+
+    return user;
+  } catch (error) {
+    throw error;
+  }
+}
+
 module.exports = {  
   client,
   getPostsByUser,
@@ -314,5 +336,7 @@ module.exports = {
   createTags,
   addTagsToPost,
   getPostsByTagName,
-  getAllTags
+  getAllTags,
+  getPostById,
+  getUserByUsername
 }
